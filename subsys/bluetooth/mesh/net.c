@@ -86,6 +86,13 @@ struct bt_mesh_net bt_mesh = {
 			.net_idx = BT_MESH_KEY_UNUSED,
 		}
 	},
+#if defined(CONFIG_BT_MESH_PROVISIONER)
+	.nodes = {
+		[0 ... (CONFIG_BT_MESH_NODE_COUNT - 1)] = {
+			.net_idx = BT_MESH_KEY_UNUSED,
+		}
+	},
+#endif
 };
 
 static u32_t dup_cache[4];
@@ -1404,6 +1411,19 @@ void bt_mesh_net_start(void)
 
 		bt_mesh_prov_complete(net_idx, addr);
 	}
+
+#if defined(CONFIG_BT_MESH_PROVISIONER)
+	struct bt_mesh_node *node;
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(bt_mesh.nodes); ++i) {
+		node = &bt_mesh.nodes[i];
+		if (node->net_idx != BT_MESH_KEY_UNUSED) {
+			bt_mesh_prov_node_added(node->net_idx, node->addr,
+						   node->num_elem);
+		}
+	}
+#endif
 }
 
 void bt_mesh_net_init(void)

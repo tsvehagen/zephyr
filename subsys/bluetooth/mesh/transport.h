@@ -77,6 +77,12 @@ void bt_mesh_set_hb_sub_dst(u16_t addr);
 
 struct bt_mesh_app_key *bt_mesh_app_key_find(u16_t app_idx);
 
+#if defined(CONFIG_BT_MESH_PROVISIONER)
+struct bt_mesh_node *bt_mesh_node_find(u16_t addr);
+struct bt_mesh_node *bt_mesh_node_alloc(u16_t addr, u16_t net_idx);
+void bt_mesh_node_del(struct bt_mesh_node *node, bool store);
+#endif
+
 bool bt_mesh_tx_in_progress(void);
 
 void bt_mesh_rx_reset(void);

@@ -131,7 +131,7 @@ static int send_unseg(struct bt_mesh_net_tx *tx, struct net_buf_simple *sdu,
 
 	net_buf_reserve(buf, BT_MESH_NET_HDR_LEN);
 
-	if (tx->ctx->app_idx == BT_MESH_KEY_DEV) {
+	if (BT_MESH_IS_DEV_KEY(tx->ctx->app_idx)) {
 		net_buf_add_u8(buf, UNSEG_HDR(0, 0));
 	} else {
 		net_buf_add_u8(buf, UNSEG_HDR(1, tx->aid));
@@ -345,7 +345,7 @@ static int send_seg(struct bt_mesh_net_tx *net_tx, struct net_buf_simple *sdu,
 		return -EBUSY;
 	}
 
-	if (net_tx->ctx->app_idx == BT_MESH_KEY_DEV) {
+	if (BT_MESH_IS_DEV_KEY(net_tx->ctx->app_idx)) {
 		seg_hdr = SEG_HDR(0, 0);
 	} else {
 		seg_hdr = SEG_HDR(1, net_tx->aid);
@@ -480,6 +480,55 @@ struct bt_mesh_app_key *bt_mesh_app_key_find(u16_t app_idx)
 	return NULL;
 }
 
+#if defined(CONFIG_BT_MESH_PROVISIONER)
+struct bt_mesh_node *bt_mesh_node_find(u16_t addr)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(bt_mesh.nodes); i++) {
+		struct bt_mesh_node *node = &bt_mesh.nodes[i];
+
+		if (node->net_idx != BT_MESH_KEY_UNUSED &&
+		    node->addr == addr) {
+			return node;
+		}
+	}
+
+	return NULL;
+}
+
+struct bt_mesh_node *bt_mesh_node_alloc(u16_t addr, u16_t net_idx)
+{
+	int i;
+
+	BT_DBG("");
+
+	for (i = 0; i < ARRAY_SIZE(bt_mesh.nodes); i++) {
+		struct bt_mesh_node *node = &bt_mesh.nodes[i];
+
+		if (node->net_idx == BT_MESH_KEY_UNUSED) {
+			node->addr = addr;
+			node->net_idx = net_idx;
+			return node;
+		}
+	}
+
+	return NULL;
+}
+
+void bt_mesh_node_del(struct bt_mesh_node *node, bool store)
+{
+	BT_DBG("Node addr 0x%04x store %u", node->addr, store);
+
+	if (IS_ENABLED(CONFIG_BT_SETTINGS) && store) {
+		bt_mesh_clear_node(node);
+	}
+
+	node->net_idx = BT_MESH_KEY_UNUSED;
+	(void)memset(node->dev_key, 0, sizeof(node->dev_key));
+}
+#endif
+
 int bt_mesh_trans_send(struct bt_mesh_net_tx *tx, struct net_buf_simple *msg,
 		       const struct bt_mesh_send_cb *cb, void *cb_data)
 {
@@ -500,9 +549,25 @@ int bt_mesh_trans_send(struct bt_mesh_net_tx *tx, struct net_buf_simple *msg,
 	       tx->ctx->app_idx, tx->ctx->addr);
 	BT_DBG("len %u: %s", msg->len, bt_hex(msg->data, msg->len));
 
-	if (tx->ctx->app_idx == BT_MESH_KEY_DEV) {
+	if (tx->ctx->app_idx == BT_MESH_KEY_DEV_LOCAL ||
+	    (tx->ctx->app_idx == BT_MESH_KEY_DEV_REMOTE &&
+	     tx->ctx->addr == bt_mesh_primary_addr())) {
 		key = bt_mesh.dev_key;
 		tx->aid = 0U;
+	} else if (tx->ctx->app_idx == BT_MESH_KEY_DEV_REMOTE) {
+#if defined(CONFIG_BT_MESH_PROVISIONER)
+		struct bt_mesh_node *node;
+
+		node = bt_mesh_node_find(tx->ctx->addr);
+		if (!node) {
+			return -EINVAL;
+		}
+
+		key = node->dev_key;
+		tx->aid = 0U;
+#else
+		return -EINVAL;
+#endif
 	} else {
 		struct bt_mesh_app_key *app_key;
 
@@ -533,10 +598,9 @@ int bt_mesh_trans_send(struct bt_mesh_net_tx *tx, struct net_buf_simple *msg,
 		ad = NULL;
 	}
 
-	err = bt_mesh_app_encrypt(key, tx->ctx->app_idx == BT_MESH_KEY_DEV,
-				  tx->aszmic, msg, ad, tx->src,
-				  tx->ctx->addr, bt_mesh.seq,
-				  BT_MESH_NET_IVI_TX);
+	err = bt_mesh_app_encrypt(key, BT_MESH_IS_DEV_KEY(tx->ctx->app_idx),
+				  tx->aszmic, msg, ad, tx->src, tx->ctx->addr,
+				  bt_mesh.seq, BT_MESH_NET_IVI_TX);
 	if (err) {
 		return err;
 	}
@@ -656,13 +720,45 @@ static int sdu_recv(struct bt_mesh_net_rx *rx, u32_t seq, u8_t hdr,
 					  rx->ctx.recv_dst, seq,
 					  BT_MESH_NET_IVI_RX(rx));
 		if (err) {
-			BT_ERR("Unable to decrypt with DevKey");
+			BT_WARN("Unable to decrypt with local DevKey");
+		} else {
+			rx->ctx.app_idx = BT_MESH_KEY_DEV_LOCAL;
+			bt_mesh_model_recv(rx, &sdu);
+			return 0;
+		}
+
+#if defined(CONFIG_BT_MESH_PROVISIONER)
+		struct bt_mesh_node *node;
+
+		/*
+		 * There is no way of knowing if we should use our local DevKey
+		 * or the remote DevKey to decrypt the message so we must try
+		 * both.
+		 */
+
+		node = bt_mesh_node_find(rx->ctx.addr);
+		if (node == NULL) {
+			BT_ERR("No node found for addr 0x%04x",
+			       rx->ctx.addr);
 			return -EINVAL;
 		}
 
-		rx->ctx.app_idx = BT_MESH_KEY_DEV;
+		net_buf_simple_reset(&sdu);
+		err = bt_mesh_app_decrypt(node->dev_key, true, aszmic, buf,
+					  &sdu, ad, rx->ctx.addr,
+					  rx->ctx.recv_dst, seq,
+					  BT_MESH_NET_IVI_RX(rx));
+		if (err) {
+			BT_ERR("Unable to decrypt with node DevKey");
+			return -EINVAL;
+		}
+
+		rx->ctx.app_idx = BT_MESH_KEY_DEV_REMOTE;
 		bt_mesh_model_recv(rx, &sdu);
 		return 0;
+#else
+		return -EINVAL;
+#endif
 	}
 
 	for (i = 0U; i < ARRAY_SIZE(bt_mesh.app_keys); i++) {
