@@ -128,6 +128,20 @@ struct bt_mesh_prov {
 	 */
 	int         (*input)(bt_mesh_input_action_t act, u8_t size);
 
+	/** @brief Unprovisioned beacon has been received.
+	 *
+	 * This callback notifies the application that an unprovisioned
+	 * beacon has been received.
+	 *
+	 * @param uuid UUID
+	 * @param oob_info OOB Information
+	 * @param uri_hash Pointer to URI Hash value. NULL if no hash was
+	 *                 present in the beacon.
+	 */
+	void        (*unprovisioned_beacon)(u8_t uuid[16],
+					    bt_mesh_prov_oob_info_t oob_info,
+					    u32_t *uri_hash);
+
 	/** @brief Provisioning link has been opened.
 	 *
 	 *  This callback notifies the application that a provisioning
