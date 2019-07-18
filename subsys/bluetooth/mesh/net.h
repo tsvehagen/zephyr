@@ -353,6 +353,10 @@ void bt_mesh_net_recv(struct net_buf_simple *data, s8_t rssi,
 
 u32_t bt_mesh_next_seq(void);
 
+#if defined(CONFIG_BT_MESH_PROVISIONER)
+bool bt_mesh_is_addr_free(u16_t addr);
+#endif
+
 void bt_mesh_net_start(void);
 
 void bt_mesh_net_init(void);

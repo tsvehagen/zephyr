@@ -741,6 +741,50 @@ u32_t bt_mesh_next_seq(void)
 	return seq;
 }
 
+#if defined(CONFIG_BT_MESH_PROVISIONER)
+bool bt_mesh_is_addr_free(u16_t addr)
+{
+	u16_t addr_start, addr_end;
+	const struct bt_mesh_comp *comp = bt_mesh_comp_get();
+
+	if (comp == NULL) {
+		return false;
+	}
+
+	if (!BT_MESH_ADDR_IS_UNICAST(addr)) {
+		return false;
+	}
+
+	addr_start = bt_mesh_primary_addr();
+	addr_end = addr_start + comp->elem_count - 1;
+
+	/* Compare with local element addresses */
+	if (addr >= addr_start && addr <= addr_end) {
+		return false;
+	}
+
+#if defined(CONFIG_BT_MESH_NODE_COUNT)
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(bt_mesh.nodes); i++) {
+		struct bt_mesh_node *node = &bt_mesh.nodes[i];
+
+		if (node->net_idx == BT_MESH_KEY_UNUSED) {
+			continue;
+		}
+
+		addr_start = node->addr;
+		addr_end = addr_start + node->num_elem - 1;
+
+		if (addr >= addr_start && addr <= addr_end) {
+			return false;
+		}
+	}
+#endif
+	return true;
+}
+#endif
+
 int bt_mesh_net_resend(struct bt_mesh_subnet *sub, struct net_buf *buf,
 		       bool new_key, const struct bt_mesh_send_cb *cb,
 		       void *cb_data)
