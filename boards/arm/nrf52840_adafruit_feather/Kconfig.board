@@ -1,0 +1,7 @@
+# Kconfig - nRF52840 Adafruit Feather board configuration
+#
+# SPDX-License-Identifier: Apache-2.0
+
+config BOARD_NRF52840_ADAFRUIT_FEATHER
+	bool "nRF52840 ADAFRUIT FEATHER"
+	depends on SOC_NRF52840_QIAA

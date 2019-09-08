@@ -1,0 +1,30 @@
+# Kconfig - nRF52840 Adafruit Feather board configuration
+#
+# SPDX-License-Identifier: Apache-2.0
+
+if BOARD_NRF52840_ADAFRUIT_FEATHER
+
+config BOARD
+	default "nrf52840_adafruit_feather"
+
+if USB
+
+config USB_NRF52840
+	default y
+
+config USB_DEVICE_STACK
+	default y
+
+endif # USB
+
+if IEEE802154
+
+config IEEE802154_NRF5
+	default y
+
+endif # IEEE802154
+
+config BT_CTLR
+	default BT
+
+endif # BOARD_NRF52840_ADAFRUIT_FEATHER
