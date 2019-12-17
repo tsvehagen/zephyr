@@ -1,0 +1,41 @@
+# Copyright (c) 2019 Tobias Svehagen
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig WIFI_ESP8266
+	bool "Espressif esp8266 support"
+	select MODEM
+	select MODEM_CONTEXT
+	select MODEM_CMD_HANDLER
+	select MODEM_IFACE_UART
+	select NET_L2_WIFI_MGMT
+	select WIFI_OFFLOAD
+
+if WIFI_ESP8266
+
+config WIFI_ESP8266_NAME
+	string "Driver name"
+	default "esp8266"
+
+config WIFI_ESP8266_RX_STACK_SIZE
+	int "Stack size for the Espressif esp8266 wifi driver RX thread"
+	default 1028
+	help
+	  This stack is used by the Espressif esp8266 RX thread.
+
+config WIFI_ESP8266_WORKQ_STACK_SIZE
+	int "Stack size for the esp8266 driver work queue"
+	default 2048
+	help
+	  This stack is used by the work queue to pass off net_pkt data
+	  to the rest of the network stack, letting the rx thread continue
+	  processing data.
+
+config WIFI_ESP8266_PASSIVE_TCP
+	bool "Use passive TCP"
+	default y
+	help
+	  This lets the esp8266 handle the TCP window so that data can flow
+	  at a rate that the driver can handle. Without this, data might get
+	  lost if the driver cannot empty the device buffer quickly enough.
+
+endif # WIFI_ESP8266
