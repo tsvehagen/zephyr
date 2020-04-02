@@ -24,6 +24,19 @@ For instance you can use TI's CC3220 by selecting the cc3220sf_launchxl board.
    :goals: build
    :compact:
 
+You can also choose to use a board and a supported shield that provides Wi-Fi
+support.
+
+For instance you can use the Adafruit Feather nRF52840 together with the
+Adafruit Feather Huzzah ESP32.
+
+.. zephyr-app-commands::
+   :zephyr-app: sample/net/wifi
+   :board: adafruit_feather_nrf52840
+   :shield: adafruit_feather_huzzah32
+   :goals: build
+   :compact:
+
 Sample console interaction
 ==========================
 
