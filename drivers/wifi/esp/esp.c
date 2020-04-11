@@ -341,7 +341,7 @@ struct net_pkt *esp_prepare_pkt(struct esp_data *dev, struct net_buf *src,
 }
 
 /*
- * Passive TCP: "+IPD,<id>,<len>\r\n"
+ * Passive TCP: "+IPD,<id>,<len>\r\n" XXX
  * Other:       "+IPD,<id>,<len>:<data>"
  */
 #define MIN_IPD_LEN (sizeof("+IPD,I,LE") - 1)
@@ -385,12 +385,17 @@ MODEM_CMD_DIRECT_DEFINE(on_cmd_ipd)
 	}
 
 	/* When using passive TCP, the +IPD command ends with \r\n */
+	/*
 	if (IS_ENABLED(CONFIG_WIFI_ESP_PASSIVE_TCP) &&
 	    sock->ip_proto == IPPROTO_TCP) {
+	*/
+	if (ESP_PROTO_PASSIVE(sock->ip_proto)) {
 		end = '\r';
 	} else {
 		end = ':';
 	}
+
+	//LOG_HEXDUMP_DBG(ipd_buf, strlen(ipd_buf), "cmd");
 
 	data_len = strtol(&ipd_buf[len + 3], &endptr, 10);
 	if (endptr == &ipd_buf[len + 3] ||
@@ -416,8 +421,16 @@ MODEM_CMD_DIRECT_DEFINE(on_cmd_ipd)
 	 * When using passive TCP, the data itself is not included in the +IPD
 	 * command but must be polled with AT+CIPRECVDATA.
 	 */
+	/*
 	if (IS_ENABLED(CONFIG_WIFI_ESP_PASSIVE_TCP) &&
-	    sock->ip_proto == IPPROTO_TCP) {
+	    (IS_ENABLED(CONFIG_WIFI_ESP_AT_VERSION_2_0) ||
+	     sock->ip_proto == IPPROTO_TCP)) {
+	*/
+	/*
+	if ((sock->ip_proto == IPPROTO_TCP && PASSIVE_TCP) ||
+	    (sock->ip_proto == IPPROTO_UDP && PASSIVE_UDP)) {
+	*/
+	if (ESP_PROTO_PASSIVE(sock->ip_proto)) {
 		sock->bytes_avail = data_len;
 		k_work_submit_to_queue(&dev->workq, &sock->recvdata_work);
 		ret = data_offset;
@@ -466,6 +479,7 @@ MODEM_CMD_DEFINE(on_cmd_ready)
 {
 	struct esp_data *dev = CONTAINER_OF(data, struct esp_data,
 					    cmd_handler_data);
+	k_sem_give(&dev->sem_if_ready);
 
 	if (net_if_is_up(dev->net_iface)) {
 		net_if_down(dev->net_iface);
@@ -698,16 +712,16 @@ static void esp_init_work(struct k_work *work)
 		SETUP_CMD_NOHANDLE("AT"),
 		/* turn off echo */
 		SETUP_CMD_NOHANDLE("ATE0"),
-#if defined(CONFIG_WIFI_ESP_AT_VERSION_2_0)
-		SETUP_CMD_NOHANDLE("AT+CWAUTOCONN=0"),
-#endif
 		SETUP_CMD_NOHANDLE("AT+UART_CUR="_UART_CUR),
 		/* enable multiple socket support */
 		SETUP_CMD_NOHANDLE("AT+CIPMUX=1"),
 		SETUP_CMD_NOHANDLE("AT+"_CWMODE"=1"),
 		/* only need ecn,ssid,rssi,channel */
 		SETUP_CMD_NOHANDLE("AT+CWLAPOPT=0,23"),
-#if defined(CONFIG_WIFI_ESP_PASSIVE_TCP)
+#if defined(CONFIG_WIFI_ESP_AT_VERSION_2_0)
+		SETUP_CMD_NOHANDLE("AT+CWAUTOCONN=0"),
+#endif
+#if defined(CONFIG_WIFI_ESP_PASSIVE_MODE)
 		SETUP_CMD_NOHANDLE("AT+CIPRECVMODE=1"),
 #endif
 		SETUP_CMD("AT+"_CIPSTAMAC"?", "+"_CIPSTAMAC":",
@@ -749,12 +763,12 @@ static void esp_reset(struct esp_data *dev)
 	k_sleep(K_MSEC(100));
 	modem_pin_write(&dev->mctx, WIFI_RESET, 1);
 #else
-	int retries = 3;
+	int retries = 10;
 
 	while (retries--) {
 		ret = modem_cmd_send(&dev->mctx.iface, &dev->mctx.cmd_handler,
-				     NULL, 0, "AT+RST", &dev->sem_response,
-				     K_MSEC(100));
+				     NULL, 0, "AT+RST", &dev->sem_if_ready,
+				     K_MSEC(200));
 		if (ret == 0 || ret != -ETIMEDOUT) {
 			break;
 		}
@@ -801,6 +815,7 @@ static int esp_init(struct device *dev)
 
 	k_sem_init(&data->sem_tx_ready, 0, 1);
 	k_sem_init(&data->sem_response, 0, 1);
+	k_sem_init(&data->sem_if_ready, 0, 1);
 	k_sem_init(&data->sem_if_up, 0, 1);
 
 	k_work_init(&data->init_work, esp_init_work);
