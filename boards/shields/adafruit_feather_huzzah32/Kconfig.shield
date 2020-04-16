@@ -1,0 +1,5 @@
+# Copyright (c) 2020 Tobias Svehagen
+# SPDX-License-Identifier: Apache-2.0
+
+config SHIELD_ADAFRUIT_FEATHER_HUZZAH32
+	def_bool $(shields_list_contains,adafruit_feather_huzzah32)

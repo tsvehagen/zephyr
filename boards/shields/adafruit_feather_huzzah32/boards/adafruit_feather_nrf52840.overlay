@@ -1,0 +1,28 @@
+/*
+ * Copyright (c) 2020 Tobias Svehagen
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	chosen {
+		zephyr,console = &uart1;
+		zephyr,shell-uart = &uart1;
+	};
+};
+
+&feather_serial {
+	tx-pin = <24>; /* RX */
+	rx-pin = <25>; /* TX */
+	rts-pin = <26>; /* D9 */
+	cts-pin = <40>; /* D5 */
+	hw-flow-control;
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+	current-speed = <115200>;
+	tx-pin = <2>; /* A4 */
+	rx-pin = <3>; /* A5 */
+};
