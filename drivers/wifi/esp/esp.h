@@ -17,6 +17,7 @@
 #include "modem_context.h"
 #include "modem_cmd_handler.h"
 #include "modem_iface_uart.h"
+#include "modem_iface_spi.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,7 +47,8 @@ extern "C" {
 #endif
 
 #define _UART_CUR \
-	STRINGIFY(DT_PROP(ESP_BUS, current_speed))",8,1,0,"_FLOW_CONTROL
+	""
+//	STRINGIFY(DT_PROP(ESP_BUS, current_speed))",8,1,0,"_FLOW_CONTROL
 
 #define CONN_CMD_MAX_LEN (sizeof("AT+"_CWJAP"=\"\",\"\"") + \
 			  WIFI_SSID_MAX_LEN + WIFI_PSK_MAX_LEN)
@@ -59,8 +61,8 @@ extern "C" {
 
 #define INVALID_LINK_ID		255
 
-#define MDM_RING_BUF_SIZE	1024
-#define MDM_RECV_MAX_BUF	30
+#define MDM_RING_BUF_SIZE	0//1024
+#define MDM_RECV_MAX_BUF	3
 #define MDM_RECV_BUF_SIZE	128
 #define CMD_BUF_ALLOC_TIMEOUT	K_SECONDS(1)
 
@@ -141,7 +143,8 @@ struct esp_data {
 	struct modem_context mctx;
 
 	/* modem interface */
-	struct modem_iface_uart_data iface_data;
+	//struct modem_iface_uart_data iface_data;
+	struct modem_iface_spi_data iface_data;
 	u8_t iface_isr_buf[MDM_RECV_BUF_SIZE];
 	u8_t iface_rb_buf[MDM_RING_BUF_SIZE];
 

@@ -90,8 +90,10 @@ static void esp_rx(struct device *dev)
 	struct esp_data *data = dev->driver_data;
 
 	while (true) {
+		printk("wait sem\n");
 		/* wait for incoming data */
 		k_sem_take(&data->iface_data.rx_sem, K_FOREVER);
+		printk("got sem\n");
 
 		data->mctx.cmd_handler.process(&data->mctx.cmd_handler,
 					       &data->mctx.iface);
@@ -164,7 +166,7 @@ MODEM_CMD_DEFINE(on_cmd_cwlap)
 	return 0;
 }
 
-static struct modem_cmd response_cmds[] = {
+static const struct modem_cmd response_cmds[] = {
 	MODEM_CMD("OK", on_cmd_ok, 0U, ""), /* 3GPP */
 	MODEM_CMD("ERROR", on_cmd_error, 0U, ""), /* 3GPP */
 };
@@ -486,7 +488,7 @@ MODEM_CMD_DEFINE(on_cmd_ready)
 	return 0;
 }
 
-static struct modem_cmd unsol_cmds[] = {
+static const struct modem_cmd unsol_cmds[] = {
 	MODEM_CMD("WIFI CONNECTED", on_cmd_wifi_connected, 0U, ""),
 	MODEM_CMD("WIFI DISCONNECT", on_cmd_wifi_disconnected, 0U, ""),
 	MODEM_CMD("WIFI GOT IP", on_cmd_got_ip, 0U, ""),
@@ -698,15 +700,15 @@ static void esp_init_work(struct k_work *work)
 		SETUP_CMD_NOHANDLE("AT"),
 		/* turn off echo */
 		SETUP_CMD_NOHANDLE("ATE0"),
+		//SETUP_CMD_NOHANDLE("AT+UART_CUR="_UART_CUR),
+		/* enable multiple socket support */
+		SETUP_CMD_NOHANDLE("AT+"_CWMODE"=1"),
+		SETUP_CMD_NOHANDLE("AT+CIPMUX=1"),
+		/* only need ecn,ssid,rssi,channel */
+		SETUP_CMD_NOHANDLE("AT+CWLAPOPT=0,23"),
 #if defined(CONFIG_WIFI_ESP_AT_VERSION_2_0)
 		SETUP_CMD_NOHANDLE("AT+CWAUTOCONN=0"),
 #endif
-		SETUP_CMD_NOHANDLE("AT+UART_CUR="_UART_CUR),
-		/* enable multiple socket support */
-		SETUP_CMD_NOHANDLE("AT+CIPMUX=1"),
-		SETUP_CMD_NOHANDLE("AT+"_CWMODE"=1"),
-		/* only need ecn,ssid,rssi,channel */
-		SETUP_CMD_NOHANDLE("AT+CWLAPOPT=0,23"),
 #if defined(CONFIG_WIFI_ESP_PASSIVE_TCP)
 		SETUP_CMD_NOHANDLE("AT+CIPRECVMODE=1"),
 #endif
@@ -730,6 +732,7 @@ static void esp_init_work(struct k_work *work)
 			     sizeof(dev->mac_addr), NET_LINK_ETHERNET);
 
 	LOG_INF("ESP Wi-Fi ready");
+	printk("wifi ready\n");
 
 	net_if_up(dev->net_iface);
 
@@ -750,11 +753,13 @@ static void esp_reset(struct esp_data *dev)
 	modem_pin_write(&dev->mctx, WIFI_RESET, 1);
 #else
 	int retries = 3;
-
+	k_sleep(K_MSEC(5000));
+	k_work_submit_to_queue(&dev->workq, &dev->init_work);
+/*
 	while (retries--) {
 		ret = modem_cmd_send(&dev->mctx.iface, &dev->mctx.cmd_handler,
 				     NULL, 0, "AT+RST", &dev->sem_response,
-				     K_MSEC(100));
+				     K_MSEC(5000));
 		if (ret == 0 || ret != -ETIMEDOUT) {
 			break;
 		}
@@ -764,6 +769,7 @@ static void esp_reset(struct esp_data *dev)
 		LOG_ERR("Failed to reset device: %d", ret);
 		return;
 	}
+*/
 #endif
 
 	LOG_INF("Waiting for interface to come up");
@@ -839,7 +845,11 @@ static int esp_init(struct device *dev)
 	data->iface_data.isr_buf_len = sizeof(data->iface_isr_buf);
 	data->iface_data.rx_rb_buf = &data->iface_rb_buf[0];
 	data->iface_data.rx_rb_buf_len = sizeof(data->iface_rb_buf);
+	/*
 	ret = modem_iface_uart_init(&data->mctx.iface, &data->iface_data,
+				    DT_INST_BUS_LABEL(0));
+	*/
+	ret = modem_iface_spi_init(&data->mctx.iface, &data->iface_data,
 				    DT_INST_BUS_LABEL(0));
 	if (ret < 0) {
 		goto error;

@@ -30,7 +30,7 @@ static int hifive1_revb_pinmux_init(struct device *dev)
 	pinmux_pin_set(p, 4, SIFIVE_PINMUX_IOF0); /* MISO */
 	pinmux_pin_set(p, 5, SIFIVE_PINMUX_IOF0); /* SCK */
 	pinmux_pin_set(p, 9, SIFIVE_PINMUX_IOF0); /* SS2 */
-	pinmux_pin_set(p, 10, SIFIVE_PINMUX_IOF0); /* SS3 */
+	//pinmux_pin_set(p, 10, SIFIVE_PINMUX_IOF0); /* SS3 */
 #endif /* CONFIG_SPI_SIFIVE */
 
 #ifdef CONFIG_I2C_SIFIVE

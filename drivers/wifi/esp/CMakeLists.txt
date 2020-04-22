@@ -11,5 +11,6 @@ if(CONFIG_WIFI_ESP)
     esp.c
     esp_socket.c
     esp_offload.c
+    modem_iface_spi.c
   )
 endif()

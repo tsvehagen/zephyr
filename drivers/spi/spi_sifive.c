@@ -16,6 +16,18 @@ LOG_MODULE_REGISTER(spi_sifive);
 
 /* Helper Functions */
 
+static void dump_regs(struct device *dev)
+{
+	printk("SCKDIV: 0x%x\n", sys_read32(SPI_REG(dev, REG_SCKDIV)));
+	printk("SCKMODE: 0x%x\n", sys_read32(SPI_REG(dev, REG_SCKMODE)));
+	printk("CSID: 0x%x\n", sys_read32(SPI_REG(dev, REG_CSID)));
+	printk("CSDEF: 0x%x\n", sys_read32(SPI_REG(dev, REG_CSDEF)));
+	printk("CSMODE: 0x%x\n", sys_read32(SPI_REG(dev, REG_CSMODE)));
+	printk("DELAY0: 0x%x\n", sys_read32(SPI_REG(dev, REG_DELAY0)));
+	printk("DELAY1: 0x%x\n", sys_read32(SPI_REG(dev, REG_DELAY1)));
+	printk("FMT: 0x%x\n", sys_read32(SPI_REG(dev, REG_FMT)));
+}
+
 static inline void sys_set_mask(mem_addr_t addr, u32_t mask, u32_t value)
 {
 	u32_t temp = sys_read32(addr);
@@ -95,9 +107,10 @@ int spi_config(struct device *dev, u32_t frequency, u16_t operation)
 
 void spi_sifive_send(struct device *dev, u16_t frame)
 {
-	while (SPI_REG(dev, REG_TXDATA) & SF_TXDATA_FULL) {
+	while (sys_read32(SPI_REG(dev, REG_TXDATA)) & SF_TXDATA_FULL) {
 	}
 
+	//printk("send %x (%c)\n", frame, (char)frame);
 	sys_write32((u32_t) frame, SPI_REG(dev, REG_TXDATA));
 }
 
@@ -107,6 +120,8 @@ u16_t spi_sifive_recv(struct device *dev)
 
 	while ((val = sys_read32(SPI_REG(dev, REG_RXDATA))) & SF_RXDATA_EMPTY) {
 	}
+
+	//printk("recv %x (%c)\n", val, (char)val);
 
 	return (u16_t) val;
 }
@@ -150,11 +165,14 @@ void spi_sifive_xfer(struct device *dev, const bool hw_cs_control)
 
 int spi_sifive_init(struct device *dev)
 {
+	dump_regs(dev);
+
 	/* Disable SPI Flash mode */
 	sys_clear_bit(SPI_REG(dev, REG_FCTRL), SF_FCTRL_EN);
 
 	/* Make sure the context is unlocked */
 	spi_context_unlock_unconditionally(&SPI_DATA(dev)->ctx);
+
 	return 0;
 }
 
