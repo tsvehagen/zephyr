@@ -159,7 +159,7 @@ static void init_rx_queues(void)
 	 */
 	net_if_init();
 
-	net_tc_rx_init();
+	//net_tc_rx_init();
 
 	/* This will take the interface up and start everything. */
 	net_if_post_init();

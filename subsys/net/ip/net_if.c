@@ -42,7 +42,7 @@ extern struct net_if __net_if_end[];
 extern struct net_if_dev __net_if_dev_start[];
 extern struct net_if_dev __net_if_dev_end[];
 
-#if defined(CONFIG_NET_NATIVE_IPV4) || defined(CONFIG_NET_NATIVE_IPV6)
+#if defined(CONFIG_NET_NATIVE_IPV4) || defined(CONFIG_NET_NATIVE_IPV6) || 1
 static struct net_if_router routers[CONFIG_NET_MAX_ROUTERS];
 static struct k_delayed_work router_timer;
 static sys_slist_t active_router_timers;
@@ -78,7 +78,7 @@ static struct {
 } ipv6_addresses[CONFIG_NET_IF_MAX_IPV6_COUNT];
 #endif /* CONFIG_NET_IPV6 */
 
-#if defined(CONFIG_NET_NATIVE_IPV4)
+#if defined(CONFIG_NET_NATIVE_IPV4) || 1
 static struct {
 	struct net_if_ipv4 ipv4;
 	struct net_if *iface;
@@ -505,7 +505,7 @@ static enum net_l2_flags l2_flags_get(struct net_if *iface)
 	return flags;
 }
 
-#if defined(CONFIG_NET_NATIVE_IPV4) || defined(CONFIG_NET_NATIVE_IPV6)
+#if defined(CONFIG_NET_NATIVE_IPV4) || defined(CONFIG_NET_NATIVE_IPV6) || 1
 /* Return how many bits are shared between two IP addresses */
 static u8_t get_ipaddr_diff(const u8_t *src, const u8_t *dst, int addr_len)
 {
@@ -2512,7 +2512,7 @@ struct in6_addr *net_if_ipv6_get_global_addr(enum net_addr_state state,
 }
 #endif /* CONFIG_NET_IPV6 */
 
-#if defined(CONFIG_NET_NATIVE_IPV4)
+#if defined(CONFIG_NET_NATIVE_IPV4) || 1
 int net_if_config_ipv4_get(struct net_if *iface, struct net_if_ipv4 **ipv4)
 {
 	int i;
@@ -3727,7 +3727,7 @@ void net_if_init(void)
 
 	NET_DBG("");
 
-	net_tc_tx_init();
+	//net_tc_tx_init();
 
 	for (iface = __net_if_start, if_count = 0; iface != __net_if_end;
 	     iface++, if_count++) {

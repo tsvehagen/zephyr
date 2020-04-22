@@ -253,7 +253,7 @@ struct net_if_ipv6 {
 };
 
 /** @cond INTERNAL_HIDDEN */
-#if defined(CONFIG_NET_NATIVE_IPV4)
+#if defined(CONFIG_NET_NATIVE_IPV4) || 1
 #define NET_IF_MAX_IPV4_ADDR CONFIG_NET_IF_UNICAST_IPV4_ADDR_COUNT
 #define NET_IF_MAX_IPV4_MADDR CONFIG_NET_IF_MCAST_IPV4_ADDR_COUNT
 #else
@@ -366,7 +366,7 @@ struct net_if_ip {
 	struct net_if_ipv6 *ipv6;
 #endif /* CONFIG_NET_IPV6 */
 
-#if defined(CONFIG_NET_NATIVE_IPV4)
+#if defined(CONFIG_NET_NATIVE_IPV4) || 1
 	struct net_if_ipv4 *ipv4;
 #endif /* CONFIG_NET_IPV4 */
 };
@@ -1753,7 +1753,7 @@ bool net_if_ipv4_is_addr_bcast(struct net_if *iface,
  * @return Pointer to network interface to use, NULL if no suitable interface
  * could be found.
  */
-#if defined(CONFIG_NET_NATIVE_IPV4)
+#if defined(CONFIG_NET_NATIVE_IPV4) || 1
 struct net_if *net_if_ipv4_select_src_iface(const struct in_addr *dst);
 #else
 static inline struct net_if *net_if_ipv4_select_src_iface(
@@ -1776,7 +1776,7 @@ static inline struct net_if *net_if_ipv4_select_src_iface(
  * @return Pointer to IPv4 address to use, NULL if no IPv4 address
  * could be found.
  */
-#if defined(CONFIG_NET_NATIVE_IPV4)
+#if defined(CONFIG_NET_NATIVE_IPV4) || 1
 const struct in_addr *net_if_ipv4_select_src_addr(struct net_if *iface,
 						  const struct in_addr *dst);
 #else

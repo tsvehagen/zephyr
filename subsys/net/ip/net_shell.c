@@ -265,7 +265,7 @@ static void print_supported_ethernet_capabilities(
 
 static void iface_cb(struct net_if *iface, void *user_data)
 {
-#if defined(CONFIG_NET_NATIVE)
+#if defined(CONFIG_NET_NATIVE) || 1
 	struct net_shell_user_data *data = user_data;
 	const struct shell *shell = data->shell;
 
@@ -3439,7 +3439,8 @@ static int cmd_net_stats(const struct shell *shell, size_t argc, char *argv[])
 	return 0;
 }
 
-#if defined(CONFIG_NET_TCP1) && defined(CONFIG_NET_NATIVE_TCP)
+//#if defined(CONFIG_NET_TCP1) && defined(CONFIG_NET_NATIVE_TCP)
+#if 1
 static struct net_context *tcp_ctx;
 static const struct shell *tcp_shell;
 
@@ -3642,7 +3643,8 @@ static void tcp_sent_cb(struct net_context *context,
 static int cmd_net_tcp_connect(const struct shell *shell, size_t argc,
 			       char *argv[])
 {
-#if defined(CONFIG_NET_TCP1) && defined(CONFIG_NET_NATIVE_TCP)
+//#if defined(CONFIG_NET_TCP1) && defined(CONFIG_NET_NATIVE_TCP)
+#if 1
 	int arg = 0;
 
 	/* tcp connect <ip> port */
@@ -3686,7 +3688,8 @@ static int cmd_net_tcp_connect(const struct shell *shell, size_t argc,
 static int cmd_net_tcp_send(const struct shell *shell, size_t argc,
 			    char *argv[])
 {
-#if defined(CONFIG_NET_TCP1) && defined(CONFIG_NET_NATIVE_TCP)
+//#if defined(CONFIG_NET_TCP1) && defined(CONFIG_NET_NATIVE_TCP)
+#if 1
 	int arg = 0;
 	int ret;
 	struct net_shell_user_data user_data;
@@ -3723,7 +3726,8 @@ static int cmd_net_tcp_send(const struct shell *shell, size_t argc,
 static int cmd_net_tcp_close(const struct shell *shell, size_t argc,
 			     char *argv[])
 {
-#if defined(CONFIG_NET_TCP1) && defined(CONFIG_NET_NATIVE_TCP)
+//#if defined(CONFIG_NET_TCP1) && defined(CONFIG_NET_NATIVE_TCP)
+#if 1
 	int ret;
 
 	/* tcp close */
